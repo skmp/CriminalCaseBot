@@ -81,6 +81,7 @@
             this.pb1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.CenterImage;
             this.pb1.TabIndex = 1;
             this.pb1.TabStop = false;
+            this.pb1.MouseUp += new System.Windows.Forms.MouseEventHandler(this.b1_MouseUp);
             // 
             // pb2
             // 
@@ -91,6 +92,7 @@
             this.pb2.SizeMode = System.Windows.Forms.PictureBoxSizeMode.CenterImage;
             this.pb2.TabIndex = 2;
             this.pb2.TabStop = false;
+            this.pb2.MouseUp += new System.Windows.Forms.MouseEventHandler(this.b1_MouseUp);
             // 
             // pb3
             // 
@@ -101,6 +103,7 @@
             this.pb3.SizeMode = System.Windows.Forms.PictureBoxSizeMode.CenterImage;
             this.pb3.TabIndex = 3;
             this.pb3.TabStop = false;
+            this.pb3.MouseUp += new System.Windows.Forms.MouseEventHandler(this.b1_MouseUp);
             // 
             // pb4
             // 
@@ -111,6 +114,7 @@
             this.pb4.SizeMode = System.Windows.Forms.PictureBoxSizeMode.CenterImage;
             this.pb4.TabIndex = 4;
             this.pb4.TabStop = false;
+            this.pb4.MouseUp += new System.Windows.Forms.MouseEventHandler(this.b1_MouseUp);
             // 
             // pb5
             // 
@@ -121,6 +125,7 @@
             this.pb5.SizeMode = System.Windows.Forms.PictureBoxSizeMode.CenterImage;
             this.pb5.TabIndex = 5;
             this.pb5.TabStop = false;
+            this.pb5.MouseUp += new System.Windows.Forms.MouseEventHandler(this.b1_MouseUp);
             // 
             // pb6
             // 
@@ -131,6 +136,7 @@
             this.pb6.SizeMode = System.Windows.Forms.PictureBoxSizeMode.CenterImage;
             this.pb6.TabIndex = 6;
             this.pb6.TabStop = false;
+            this.pb6.MouseUp += new System.Windows.Forms.MouseEventHandler(this.b1_MouseUp);
             // 
             // tb1
             // 

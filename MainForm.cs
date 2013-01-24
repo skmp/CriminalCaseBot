@@ -109,7 +109,7 @@ namespace CriminalCaseBot
             b5.Tag = pb5; pb5.Tag = tb5; tb5.Tag = b5;
             b6.Tag = pb6; pb6.Tag = tb6; tb6.Tag = b6;
 
-            LoadLv("85ab8136328e9398a1b51de74fe34084");
+            //LoadLv("85ab8136328e9398a1b51de74fe34084");
 
         }
 
@@ -134,6 +134,9 @@ namespace CriminalCaseBot
         //this is strongly unique
         public static string ImageHash_uniq(Image image)
         {
+            if (image == null)
+                return "????????????????";
+
             byte[] bytes = null;
             using (MemoryStream ms = new MemoryStream())
             {
@@ -198,19 +201,19 @@ namespace CriminalCaseBot
                 return new Point(0, 0);
         }
 
-        void AddHashPoint(Bitmap img, Point p)
+        void AddHashPoint(string file, Point p)
         {
-            string ihv = ImageHash(img);
+            var lf = new ListTag(file);
 
-            if (!itemlist.ContainsKey(ihv)) itemlist[ihv] = new Dictionary<string, Point>();
-            itemlist[ihv][ImageHash_uniq(img)] = p;
-            lstTags.Items.Add(new ListTag(GetPath(img, 0, p)));
+            if (!itemlist.ContainsKey(lf.hash)) itemlist[lf.hash] = new Dictionary<string, Point>();
+            itemlist[lf.hash][lf.hash_uniq] = p;
+            lstTags.Items.Add(lf);
         }
 
         static string spath = Environment.CurrentDirectory + @"\stored\";
         string FileFromHash(string hash, int id)
         {
-            var rv = Directory.GetFiles(spath, Text + "." + id + "_" + hash + "*_.jpg");
+            var rv = Directory.GetFiles(spath, Text + "." + id + "_" + hash + "*_.*");
 
             if (rv.Length > 0) 
                 return rv[0];
@@ -225,8 +228,8 @@ namespace CriminalCaseBot
 
         string GetPath(Bitmap img, int id, string p)
         {
-            
-            string basename = "_" + ImageHash(img) + "_" + p.ToString() + "_.jpg";
+
+            string basename = "_" + ImageHash(img) + "_" + p.ToString() + "_." + (id == 1 ? "jpg" : "png");
 
             return spath + this.Text + "+" + id + basename;
         }
@@ -241,7 +244,7 @@ namespace CriminalCaseBot
             b.Save(fname2);
             b.Dispose();
 
-            AddHashPoint(img,p);
+            AddHashPoint(GetPath(img,0,p),p);
         }
 
         bool ClickHash(Bitmap img)
@@ -271,6 +274,7 @@ namespace CriminalCaseBot
         class ListTag
         {
             public string hash;
+            public string hash_uniq;
             public string path_tag;
             public string path_img;
 
@@ -279,6 +283,7 @@ namespace CriminalCaseBot
                 using (var b = (Bitmap)Bitmap.FromFile(file_tag))
                 {
                     hash = MainForm.ImageHash(b);
+                    hash_uniq = MainForm.ImageHash_uniq(b);
                     path_tag = file_tag;
                     path_img = file_tag.Replace("+0_", "+1_");
                 }
@@ -398,14 +403,20 @@ namespace CriminalCaseBot
             Text = nlvl;
             lstTags.Items.Clear();
             itemlist.Clear();
-            var f = Directory.GetFiles(spath, nlvl + "+0_*.jpg");
+            var r = Directory.GetFiles(spath, nlvl + "+redir+*", SearchOption.AllDirectories);
+            if (r.Length > 0)
+                nlvl = r[0].Split('+')[2];
 
-            foreach (var s in f)
+            var f = Directory.GetFiles(spath, nlvl + "+0_*.*", SearchOption.AllDirectories);
+
+            foreach (var sF in f)
             {
+                FileInfo fi = new FileInfo(sF);
+                string s = fi.Name;
                 var p = s.Split('_');
                 var xy = p[2].Split(',').Select(sx => Int32.Parse(sx.Split('=')[1].Replace("}", ""))).ToArray();
 
-                AddHashPoint((Bitmap)Bitmap.FromFile(s), new Point(xy[0], xy[1]));
+                AddHashPoint(sF, new Point(xy[0], xy[1]));
             }
         }
 
@@ -415,12 +426,33 @@ namespace CriminalCaseBot
             Point p=pc;
             p.X-=ax;
             p.Y-=ay;
-            Button bx = ((Button)sender);
-            PictureBox px = ((PictureBox)bx.Tag);
-            TextBox tbx = ((TextBox)px.Tag);
+            Button bx;
+            PictureBox px;
+            TextBox tbx;
+
+            if (sender is Button)
+            {
+                bx = ((Button)sender);
+                px = ((PictureBox)bx.Tag);
+                tbx = ((TextBox)px.Tag);
+            }
+            else
+            {
+                px = ((PictureBox)sender);
+                tbx = ((TextBox)px.Tag);
+                bx = ((Button)tbx.Tag);
+            }
 
             bx.Text = p.ToString();
-            NewHashPoint((Bitmap)px.Image,p,bg,pc);
+
+            if (e.Button == System.Windows.Forms.MouseButtons.Left)
+            {
+                NewHashPoint((Bitmap)px.Image, p, bg, pc);
+            }
+            else if (e.Button == System.Windows.Forms.MouseButtons.Right)
+            {
+                ClickHash((Bitmap)px.Image);
+            }
         }
 
 
