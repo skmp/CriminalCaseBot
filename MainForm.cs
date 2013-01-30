@@ -99,6 +99,20 @@ namespace CriminalCaseBot
             return bmp;
         }
 
+
+        void SetPath(string nroot)
+        {
+            spath = nroot;
+            cbLevels.Items.Clear();
+
+            var r = Directory.GetDirectories(spath, "*", SearchOption.TopDirectoryOnly);
+
+            foreach (var d in r)
+            {
+                DirectoryInfo df = new DirectoryInfo(d);
+                cbLevels.Items.Add(df.Name);
+            }
+        }
         private void MainForm_Load(object sender, EventArgs e)
         {
 
@@ -109,8 +123,27 @@ namespace CriminalCaseBot
             b5.Tag = pb5; pb5.Tag = tb5; tb5.Tag = b5;
             b6.Tag = pb6; pb6.Tag = tb6; tb6.Tag = b6;
 
-            //LoadLv("85ab8136328e9398a1b51de74fe34084");
+            cbCheat.Checked = true;
+            cbCheat.Checked = false;
 
+            //LoadLv("85ab8136328e9398a1b51de74fe34084");
+            try
+            {
+                SetPath(spath);
+            }
+            catch 
+            {
+
+            }
+
+            try
+            {
+                if (cbLevels.Items.Count == 0)
+                    SetPath(spath + @"..\..\..\stored\");
+            }
+            catch
+            {
+            }
         }
 
 
@@ -231,7 +264,7 @@ namespace CriminalCaseBot
 
             string basename = "_" + ImageHash(img) + "_" + p.ToString() + "_." + (id == 1 ? "jpg" : "png");
 
-            return spath + this.Text + "+" + id + basename;
+            return spath + Text + Path.DirectorySeparatorChar + this.Text + "+" + id + basename;
         }
 
         void NewHashPoint(Bitmap img, Point p, Bitmap bg, Point pc)
@@ -264,9 +297,12 @@ namespace CriminalCaseBot
 
             pbx.Image = CopyWhite(img,x,y,150,24); // Copy(img, x , y , 150, 24);
             tbx.Text = ImageHash((Bitmap)pbx.Image);
-            bx.Text = HashPoint((Bitmap)pbx.Image).ToString();
-
-            tbx.BackColor = HashPoint((Bitmap)pbx.Image).IsEmpty ? Color.Red : Color.Green;
+            var p = HashPoint((Bitmap)pbx.Image);
+            if (bx.Text != p.ToString())
+            {
+                bx.Text = p.ToString();
+                tbx.BackColor = HashPoint((Bitmap)pbx.Image).IsEmpty ? Color.Red : Color.Green;
+            }
         }
 
         bool found;
@@ -293,8 +329,16 @@ namespace CriminalCaseBot
         }
 
         int ax, ay, cx, cy;
+        const int VK_F8 = 0x77;
+        const int VK_F9 = 0x78;
         private void timer1_Tick(object sender, EventArgs e)
         {
+            if ((ScreenCapture.User32.GetAsyncKeyState(VK_F8) & 0x8000) != 0)
+                cbCheat.Checked=true;
+            
+            if ( (ScreenCapture.User32.GetAsyncKeyState(VK_F9) & 0x8000) !=0)
+                cbCheat.Checked=false;
+
             if (found)
             {
                 if (cbCheat.Checked)
@@ -363,10 +407,12 @@ namespace CriminalCaseBot
 
                                 found = true;
 
-                                Image old2 = this.pbLevelId.Image;
+                                /*
+                                 * Image old2 = this.pbLevelId.Image;
                                 pbLevelId.Image = Copy(img, x + 32, y - 128, 64, 64);
                                 if (old2 != null)
                                     old2.Dispose();
+                                */
 
                                 try
                                 {
@@ -403,20 +449,32 @@ namespace CriminalCaseBot
             Text = nlvl;
             lstTags.Items.Clear();
             itemlist.Clear();
-            var r = Directory.GetFiles(spath, nlvl + "+redir+*", SearchOption.AllDirectories);
-            if (r.Length > 0)
-                nlvl = r[0].Split('+')[2];
 
-            var f = Directory.GetFiles(spath, nlvl + "+0_*.*", SearchOption.AllDirectories);
-
-            foreach (var sF in f)
+            var d = Directory.GetDirectories(spath, nlvl, SearchOption.TopDirectoryOnly);
+            if (d.Length > 0)
             {
-                FileInfo fi = new FileInfo(sF);
-                string s = fi.Name;
-                var p = s.Split('_');
-                var xy = p[2].Split(',').Select(sx => Int32.Parse(sx.Split('=')[1].Replace("}", ""))).ToArray();
+                string rootpath = d[0];//.Split('-')[1];
 
-                AddHashPoint(sF, new Point(xy[0], xy[1]));
+                var r = Directory.GetFiles(rootpath, "redir+*", SearchOption.AllDirectories);
+                if (r.Length > 0)
+                {
+                    LoadLv(r[0].Split('+')[1]);
+                    return;
+                }
+
+                var f = Directory.GetFiles(rootpath,"*+0_*.*", SearchOption.AllDirectories);
+
+                lstTags.SuspendLayout();
+                foreach (var sF in f)
+                {
+                    FileInfo fi = new FileInfo(sF);
+                    string s = fi.Name;
+                    var p = s.Split('+')[1].Split('_');
+                    var xy = p[2].Split(',').Select(sx => Int32.Parse(sx.Split('=')[1].Replace("}", ""))).ToArray();
+
+                    AddHashPoint(sF, new Point(xy[0], xy[1]));
+                }
+                lstTags.ResumeLayout();
             }
         }
 
@@ -465,21 +523,6 @@ namespace CriminalCaseBot
                 btnStart.Text = "START";
         }
 
-
-        private void btnLoad_Click(object sender, EventArgs e)
-        {
-            string nlvl = ImageHash_uniq(pbLevelId.Image);
-            if (nlvl != Text)
-            {
-                LoadLv(nlvl);
-            }
-        }
-
-        private void tbPath_TextChanged(object sender, EventArgs e)
-        {
-            spath = tbPath.Text;
-        }
-
         private void btnRemoveTag_Click(object sender, EventArgs e)
         {
             ListTag l = lstTags.SelectedItem as ListTag;
@@ -496,21 +539,72 @@ namespace CriminalCaseBot
         {
             ListTag l = lstTags.SelectedItem as ListTag;
 
+            pbTagPreview.Image = null;
+            pbTagImage.Image = null;
+
             if (l != null)
             {
                 try
                 {
                     pbTagPreview.Image = Image.FromFile(l.path_tag);
                     pbTagImage.Image = Image.FromFile(l.path_img);
-                    return;
                 }
                 catch (Exception)
                 {
                 }
             }
 
-            pbTagPreview.Image = null;
-            pbTagImage.Image = null;
+           
+        }
+
+        private void cbLevels_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (cbLevels.SelectedItem is string)
+                LoadLv(cbLevels.SelectedItem as string);
+        }
+
+        private void cbCheat_CheckedChanged(object sender, EventArgs e)
+        {
+            if (cbCheat.Checked) 
+                cbCheat.Text = "CHEAT [F9 to disable]";
+            else
+                cbCheat.Text = "CHEAT [F8 to enable]";
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            MessageBox.Show(
+@"Quick help
+
+    Open criminal case in a browser window
+    Press the START button and select a level
+    Make sure criminal case is fully visible
+    Start the same level you selected on the bot
+    Press F8 to enable auto clicking !
+    
+FAQ
+
+    -Some items aren't found, why are you so lazy and haven't added them ?
+     Well, you can do so yourself. while both criminal case and this app's 
+      window are open, left moucse click and drag from the box with the item 
+      name (on the Bot window) to the item location (in the browser window).
+      This will create a pair of jpgs on the level folder and from now on 
+      the bot will know about this items. It might ask for some items more
+      than once (the bot is stupid). Also, if you added a wrong item,
+      simply delete the jpgs from the level folder (or use the Remove Tag
+      button after selecting the item on the list)
+      
+      Feel free to send in new levels and items and i'll add them on the repository !
+
+    -Some Levels aren't in the list, what's up with that ?
+     So far I have added the data for just a few levels. Only find-type
+     levels work. To add a new level make a new folder in the stored folder
+     named after the level !
+    
+    - OMG YOU ARE AMAZING
+     Well, not quite .. but thanks anyway :p
+"
+, "Well, hello there", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
     }
@@ -621,6 +715,9 @@ namespace CriminalCaseBot
         /// </summary>
         public class User32
         {
+            [DllImport("user32.dll")]
+            public static extern short GetAsyncKeyState(int vKey);
+
             [DllImport("user32.dll")]
             static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint dwData,
                UIntPtr dwExtraInfo);
